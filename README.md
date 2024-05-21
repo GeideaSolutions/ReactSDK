@@ -169,6 +169,7 @@ export default App;
       	failureResponse: '',
       	backgroundColor: '#fff',
       	cardColor: '#583e9e',
+	selectedEnvironment: 'Egypt - Production', //pass the name of the environment selected
       	previousScreen: 'Home', // name as in the navigation stack	});
       }
 ```

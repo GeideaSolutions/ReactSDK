@@ -2,21 +2,30 @@ import React, {Component} from 'react';
 import {View, Text, StyleSheet, Image, Switch} from 'react-native';
 import {Section, Button} from './common';
 import GeideaApi from '../actions/GeideaApi';
+import InitiateV6AuthenticationRequestBody from '../request/InitiateV6AuthenticationRequestBody';
 import InitiateV4AuthenticationRequestBody from '../request/InitiateV4AuthenticationRequestBody';
-import InitiateAuthenticationRequestBody from '../request/InitiateAuthenticationRequestBody';
-import PayerAuthenticationRequestBody from '../request/PayerAuthenticationRequestBody';
 import PayerV4AuthenticationRequestBody from '../request/PayerV4AuthenticationRequestBody';
+import PayerV6AuthenticationRequestBody from '../request/PayerV6AuthenticationRequestBody';
 import PayDirectRequestBody from '../request/PayDirectRequestBody';
 import PaymentCard from '../models/PaymentCard';
 import expiryDate from '../models/expiryDate';
 import AuthenticationApiResponse from '../response/AuthenticationApiResponse';
 import OrderResponse from '../response/OrderApiResponse';
-import {formatCurrencyAmountLabel} from '../utils';
+import {formatAmount, formatCurrencyAmountLabel} from '../utils';
 import ThreeDSScreenModal from './ThreeDSModal';
 import Address from '../models/adress';
+import PayV2DirectRequestBody from '../request/PayV2DirectRequestBody';
+import CreateSessionRequestBody from '../request/CreateSessionRequestBody';
+import base64 from 'react-native-base64';
+import SessionApiResponse from '../response/SessionApiResponse';
+import moment from 'moment/moment';
+import CryptoJS from 'crypto-js';
+import DeviceIdentification from '../models/DeviceIdentification';
 
 let returnUrl = 'https://returnurl.com';
+const ENCRYPTION_ALGORITHM = 'HmacSHA256';
 class CheckoutLogic extends Component {
+  
   constructor(props) {
     super(props);
     this.state = Object.assign({}, this._calculateState(props), {
@@ -32,6 +41,7 @@ class CheckoutLogic extends Component {
       failureResponse: '',
       orderId: null,
       threeDSecureId: null,
+      sessionId: null,
       sameAddress: true,
       billingAddress: new Address(),
       shippingAddress: new Address(),
@@ -40,6 +50,10 @@ class CheckoutLogic extends Component {
       showSuccessReceipt: false,
       showFailureReceipt: false,
       callbackUrl: '',
+      merchantReferenceId: '',
+      selectedEnvironment: 'Egypt - Production',
+      selectedEnvironmentUrl: 'https://api.merchant.geidea.net/pgw',
+      selectedEnvironmentSessionUrl:'https://api.merchant.geidea.net/payment-intent',
     });
     this.type = 'modal';
     if (props.route != null && props.route.params != null) {
@@ -76,6 +90,11 @@ class CheckoutLogic extends Component {
     var billingAddress;
     var customerEmail;
     var phoneNumber;
+    var merchantReferenceId;
+    var language;
+    var selectedEnvironment;
+    var selectedEnvironmentUrl;
+    var selectedEnvironmentSessionUrl;
     if (props != null && props.shippingAddress != null) {
       shippingAddress = props.shippingAddress;
     }
@@ -88,16 +107,29 @@ class CheckoutLogic extends Component {
     if (props != null && props.phoneNumber != null) {
       phoneNumber = props.phoneNumber;
     }
+    if (props != null && props.merchantReferenceID != null) {
+      merchantReferenceId = props.merchantReferenceID;
+    }
+    if(props!=null && props.language !=null){
+      language = props.language;
+    }
+    if(props!=null && props.selectedEnvironment !=null){
+      selectedEnvironment = props.selectedEnvironment;
+    }
     var callbackUrl = 'https://returnurl.com';
     if (props != null && props.route != null && props.route.params != null) {
       shippingAddress = this.props.route.params.shippingAddress;
       billingAddress = this.props.route.params.billingAddress;
       customerEmail = this.props.route.params.customerEmail;
       phoneNumber = this.props.route.params.phoneNumber;
+      merchantReferenceId = this.props.route.params.merchantReferenceID;
+      selectedEnvironment = this.props.route.params.selectedEnvironment;
       callbackUrl =
         this.props.route.params.callbackUrl == ''
           ? 'https://returnurl.com'
           : this.props.route.params.callbackUrl;
+
+      GeideaApi.setSelectedEnvironment(selectedEnvironment);
     }
 
     return {
@@ -114,6 +146,10 @@ class CheckoutLogic extends Component {
       customerEmail: customerEmail,
       phoneNumber: phoneNumber,
       callbackUrl: callbackUrl,
+      merchantReferenceId: merchantReferenceId,
+      selectedEnvironment: selectedEnvironment,
+      selectedEnvironmentUrl: selectedEnvironmentUrl,
+      selectedEnvironmentSessionUrl:selectedEnvironmentSessionUrl,
     };
   }
 
@@ -135,6 +171,12 @@ class CheckoutLogic extends Component {
   closeScreen() {
     this.props.navigation.pop(1);
   }
+
+  getCurrentTimestamp() {
+    return moment().format("M/D/YYYY h:mm:ss A");
+  }
+  
+
   _handlePaymentRequest(amount) {
     const {
       currency,
@@ -142,8 +184,13 @@ class CheckoutLogic extends Component {
       apiPassword,
       paymentOperation,
       callbackUrl,
+      returnUrl,
       phoneNumber,
+      merchantReferenceID,
     } = this.type === 'modal' ? this.props : this.myProps;
+    
+
+    console.log('printing state params' +JSON.stringify(this.state));
     const {rememberMe} = this.state;
     const customerEmail = this.state.customerEmail ?? this.myProps.customerEmail;
     const sameAddress = this.state.sameAddress ?? this.myProps.sameAddress;
@@ -179,69 +226,117 @@ class CheckoutLogic extends Component {
           ?? this.myProps.shippingAddress?._postCode,
       });
     }
-    this._initiateAuthentication(
+    let timestamp = this.getCurrentTimestamp();
+    let merchantReferenceId = merchantReferenceID;
+    this._createSession(
       amount,
       currency,
       callbackUrl,
-      returnUrl,
+      merchantReferenceId,
+      timestamp,
+      this.generateSignature(publicKey,amount,currency,merchantReferenceID,apiPassword,timestamp),
       publicKey,
       apiPassword,
-      billingAdd,
-      shippingAdd,
-      customerEmail,
-      phoneNumber,
-    )
-      .then(res => {
-        let initiateAuthenticationResponse =
-          AuthenticationApiResponse.fromJson(res);
-        if (initiateAuthenticationResponse.responseCode !== '000') {
-          return this.onPaymentFailure(initiateAuthenticationResponse);
-        }
+    ).then(res => { 
+      let sessionApiResponse = SessionApiResponse.fromJson(res);
+      if (sessionApiResponse.responseCode !== '000') {
+        return this.onPaymentFailure(sessionApiResponse);
+      }
+       this._initiateV6Authentication(
+        sessionApiResponse.session.id,
+        callbackUrl,
+        returnUrl,
+        this.state.creditCardFormData.number.replace(/\s+/g, ''),
+        publicKey,
+        apiPassword,
+      )
+        .then(res => {
+          let initiateAuthenticationResponse =
+            AuthenticationApiResponse.fromJson(res);
+          if (initiateAuthenticationResponse.responseCode !== '000') {
+            return this.onPaymentFailure(initiateAuthenticationResponse);
+          }
+  
+          const deviceIdentification = new DeviceIdentification('bc8e1fc68c1c6188f95947cec64ce1b0',
+            'en',
+            'Desktops/windows/Safari-537.36/Website');
+          this._payerV6Authentication(
+            sessionApiResponse.session.id,
+            initiateAuthenticationResponse.orderId,
+            deviceIdentification,
+            -120,
+            'HPP',
+            callbackUrl,
+            returnUrl,
+            publicKey,
+            apiPassword,
+          )
+            .then(payerAuthenticationResponse => {
+              let response = AuthenticationApiResponse.fromJson(
+                payerAuthenticationResponse,
+              );
+              if (response.responseCode === '000') {
+                //handle 3d secure
+                let htmlBodyContent = response.html.replace(
+                  'target="redirectTo3ds1Frame"',
+                  'target="_top"',
+                );
+                htmlBodyContent = htmlBodyContent.replace(
+                  'target="challengeFrame"',
+                  'target="_top"',
+                );
+                this.setState({
+                  sessionId: sessionApiResponse.session.id,
+                  source: 'HPP',
+                  threeDSecureModalVisible: true,
+                  htmlBodyContent: htmlBodyContent,
+                  orderId: response.orderId,
+                  threeDSecureId: response.threeDSecureId,
+                });
+              } else {
+                return this.onPaymentFailure(response);
+              }
+            })
+            .catch(err => {
+              return this.onPaymentFailure(err);
+            });
+        }).catch(err => {
+          this.onPaymentFailure(err)
+        });
+    })
+    .catch(err => {
+      this.onPaymentFailure(err)
+    });
+  }
 
-        this._payerAuthentication(
-          amount,
-          currency,
-          initiateAuthenticationResponse.orderId,
-          callbackUrl,
-          returnUrl,
-          rememberMe,
-          publicKey,
-          apiPassword,
-          paymentOperation,
-          customerEmail,
-          billingAdd,
-          shippingAdd,
-        )
-          .then(payerAuthenticationResponse => {
-            // console.log(payerAuthenticationResponse)
-            let response = AuthenticationApiResponse.fromJson(
-              payerAuthenticationResponse,
-            );
-            if (response.responseCode === '000') {
-              //handle 3d secure
-              let htmlBodyContent = response.html.replace(
-                'target="redirectTo3ds1Frame"',
-                'target="_top"',
-              );
-              htmlBodyContent = htmlBodyContent.replace(
-                'target="challengeFrame"',
-                'target="_top"',
-              );
-              this.setState({
-                threeDSecureModalVisible: true,
-                htmlBodyContent: htmlBodyContent,
-                orderId: response.orderId,
-                threeDSecureId: response.threeDSecureId,
-              });
-            } else {
-              return this.onPaymentFailure(response);
-            }
-          })
-          .catch(err => {
-            return this.onPaymentFailure(err);
-          });
-      })
-      .catch(err => this.onPaymentFailure(err));
+  _createSession( 
+    amount,
+    currency,
+    callbackUrl,
+    merchantReferenceId,
+    timestamp,
+    signature,
+    publicKey,
+    apiPassword){
+    let createSessionRequestBody =
+      new CreateSessionRequestBody(
+        amount,
+        currency,
+        timestamp,
+        null,
+        callbackUrl,
+        merchantReferenceId,
+        null,
+        null,
+        null,
+        signature,
+        null
+      );
+    return GeideaApi.createSession(
+      createSessionRequestBody,
+      publicKey,
+      apiPassword,
+    );
   }
 
   _initiateAuthentication(
@@ -289,6 +384,26 @@ class CheckoutLogic extends Component {
         },
       );
     return GeideaApi.initiateV4Authentication(
+      initiateAuthenticationRequestBody,
+      publicKey,
+      apiPassword,
+    );
+  }
+
+  _initiateV6Authentication(
+    sessionId,
+    callbackUrl,
+    returnUrl,
+    cardNumber,
+    publicKey,
+    apiPassword,
+  ) {
+    
+    let initiateAuthenticationRequestBody =
+      new InitiateV6AuthenticationRequestBody(
+        sessionId,callbackUrl,cardNumber, returnUrl,null
+      );
+    return GeideaApi.initiateV6Authentication(
       initiateAuthenticationRequestBody,
       publicKey,
       apiPassword,
@@ -354,11 +469,64 @@ class CheckoutLogic extends Component {
     );
   }
 
+  _payerV6Authentication(
+    sessionId,
+      orderId,
+      deviceIdentification,
+      timeZone,
+      source,
+      callbackUrl,
+      returnUrl,
+    publicKey,
+    apiPassword,
+  ) {
+    let expireDate = this.state.creditCardFormData.expiry.replace(/\s+/g, '');
+    var monthYear = expireDate.split('/');
+    let exDate = new expiryDate(monthYear[0], monthYear[1]);
+    let card = new PaymentCard(
+      this.state.creditCardFormData.name.replace(/\s+/g, ''),
+      this.state.creditCardFormData.number.replace(/\s+/g, ''),
+      this.state.creditCardFormData.cvc.replace(/\s+/g, ''),
+      exDate,
+    );
+    let payerAuthenticationRequestBody = new PayerV6AuthenticationRequestBody(
+      sessionId,
+      orderId,
+      card,
+      deviceIdentification,
+      timeZone,
+      source,
+      {
+        callbackUrl: callbackUrl,
+        returnUrl: returnUrl,
+      },
+    );
+    return GeideaApi.payerV6Authentication(
+      payerAuthenticationRequestBody,
+      publicKey,
+      apiPassword,
+      null,
+    );
+  }
+  
+  generateSignature(publicKey, orderAmount, orderCurrency, merchantRefId, apiPass, timestamp) {
+      const amountStr = formatAmount(orderAmount);
+      const data = `${publicKey}${amountStr}${orderCurrency}${merchantRefId}${timestamp}`;
+      // Convert the key to WordArray
+      const key = CryptoJS.enc.Utf8.parse(apiPass);
+      // Compute HMAC
+      const hash = CryptoJS.HmacSHA256(data, key);
+      // Encode the hash as Base64
+      const hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
+      return hashInBase64;
+  }
+
   _directPay(
     amount,
     currency,
     orderId,
     threeDSecureId,
+    sessionId,
     publicKey,
     apiPassword,
     billingAddress,
@@ -379,6 +547,7 @@ class CheckoutLogic extends Component {
       amount,
       currency,
       card,
+      sessionId,
       {
         billing: billingAddress,
         shipping: shippingAddress,
@@ -387,10 +556,38 @@ class CheckoutLogic extends Component {
     return GeideaApi.payDirect(payDirectRequestBody, publicKey, apiPassword);
   }
 
+  _directPayV2(
+    sessionId,
+    orderId,
+    threeDSecureId,
+    source,
+    publicKey,
+    apiPassword,
+  ) {
+    let expireDate = this.state.creditCardFormData.expiry.replace(/\s+/g, '');
+    var monthYear = expireDate.split('/');
+    let exDate = new expiryDate(monthYear[0], monthYear[1]);
+    let card = new PaymentCard(
+      this.state.creditCardFormData.name.replace(/\s+/g, ''),
+      this.state.creditCardFormData.number.replace(/\s+/g, ''),
+      this.state.creditCardFormData.cvc.replace(/\s+/g, ''),
+      exDate,
+    );
+    let payDirectRequestBody = new PayV2DirectRequestBody(
+      sessionId,
+      threeDSecureId,
+      orderId,
+      card,
+      source,
+      {}
+    );
+    return GeideaApi.payV2Direct(payDirectRequestBody, publicKey, apiPassword);
+  }
+
   _closeThreeDSecureModal() {
     const {currency, publicKey, apiPassword} =
       this.type === 'modal' ? this.props : this.myProps;
-    const {amount, orderId, threeDSecureId,sameAddress} = this.state;
+    const {sessionId, orderId, threeDSecureId, source, sameAddress} = this.state;
     let billingAdd = new Address({
       countryCode: this.state.billingAddress?._countryCode
         ?? this.myProps.billingAddress?._countryCode,
@@ -421,19 +618,17 @@ class CheckoutLogic extends Component {
           ?? this.myProps.shippingAddress?._postCode,
       });
     }
-    if (orderId && threeDSecureId) {
+    if (orderId && threeDSecureId && sessionId) {
       this.setState({
         threeDSecureModalVisible: false,
       });
-      this._directPay(
-        amount,
-        currency,
+      this._directPayV2(
+        sessionId,
         orderId,
         threeDSecureId,
+        source,
         publicKey,
         apiPassword,
-        billingAdd,
-        shippingAdd,
       )
         .then(res => {
           let orderResponse = OrderResponse.fromJson(res);
@@ -503,7 +698,6 @@ class CheckoutLogic extends Component {
   }
   _renderThreeDSecure() {
     const {threeDSecureModalVisible, htmlBodyContent} = this.state;
-    //console.log(htmlBodyContent);
     return (
       <ThreeDSScreenModal
         visible={threeDSecureModalVisible}

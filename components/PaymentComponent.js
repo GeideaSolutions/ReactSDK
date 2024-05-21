@@ -28,6 +28,7 @@ class PaymentComponent extends CheckoutLogic {
             'This is an example screen to show how to use Geidea SDK',
           currency: this.props.route.params?.currency,
           callbackUrl: this.props.route.params?.callbackUrl,
+          returnUrl: this.props.route.params?.returnUrl,
           publicKey: this.props.route.params?.publicKey,
           apiPassword: this.props.route.params?.apiPassword,
           billingAddress: this.props.route.params?.billingAddress,
@@ -82,7 +83,7 @@ class PaymentComponent extends CheckoutLogic {
             apipasswordforrefund,
           });
         });
-      }, 15000);
+      }, 500);
     });
   };
 
@@ -97,7 +98,7 @@ class PaymentComponent extends CheckoutLogic {
             geideaApiResponse,
           });
         });
-      }, 15000);
+      }, 1000);
     });
   };
 

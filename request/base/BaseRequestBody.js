@@ -26,6 +26,9 @@ export default class BaseRequestBody {
   /*base_request_body.BaseRequestBody.fieldOrderId*/ static get fieldOrderId() {
     return 'orderId'
   }
+  /*base_request_body.BaseRequestBody.fieldSessionId*/ static get fieldSessionId() {
+    return 'sessionId'
+  }
   /*base_request_body.BaseRequestBody.fieldThreeDSecureId*/ static get fieldThreeDSecureId() {
     return 'threeDSecureId'
   }
@@ -59,8 +62,36 @@ export default class BaseRequestBody {
   /*base_request_body.BaseRequestBody.fieldReason*/ static get fieldReason() {
     return 'Reason'
   }
+  /*base_request_body.BaseRequestBody.fieldMerchantName*/ static get fieldMerchantName() {
+    return 'merchantName'
+  }
+   /*base_request_body.BaseRequestBody.fieldSource*/ static get fieldSource() {
+    return 'source'
+  }
+   /*base_request_body.BaseRequestBody.fieldIsCreateCustomerEnabled*/ static get fieldIsCreateCustomerEnabled() {
+    return 'isCreateCustomerEnabled'
+  }
+   /*base_request_body.BaseRequestBody.fieldMerchantName*/ static get fieldIsSetPaymentMethodEnabled() {
+    return 'isSetPaymentMethodEnabled'
+  }
+   /*base_request_body.BaseRequestBody.fieldIsSetPaymentMethodEnabled*/ static get fieldDeviceIdentification() {
+    return 'deviceIdentification'
+  }
+   /*base_request_body.BaseRequestBody.fieldRestrictPaymentMethods*/ static get fieldRestrictPaymentMethods() {
+    return 'restrictPaymentMethods'
+  }
+  
   /*base_request_body.BaseRequestBody.fieldMerchantReferenceID*/ static get fieldMerchantReferenceID() {
     return 'merchantReferenceID'
+  }
+  /*base_request_body.BaseRequestBody.fieldMerchantReferenceId*/ static get fieldMerchantReferenceId() {
+    return 'merchantReferenceId'
+  }
+   /*base_request_body.BaseRequestBody.fieldSignature*/ static get fieldSignature() {
+    return 'signature'
+  }
+   /*base_request_body.BaseRequestBody.fieldTimestamp*/ static get fieldTimestamp() {
+    return 'timestamp'
   }
   /*base_request_body.BaseRequestBody.fieldPaymentOperation*/ static get fieldPaymentOperation() {
     return 'paymentOperation'
@@ -92,4 +123,23 @@ export default class BaseRequestBody {
   /*base_request_body.BaseRequestBody.fieldCvv*/ static get fieldCvv() {
     return 'cvv'
   }
+
+  /*base_request_body.BaseRequestBody.fieldJavaEnabled*/ static get fieldJavaEnabled() {
+    return 'javaEnabled'
+  }
+
+  /*base_request_body.BaseRequestBody.fieldJavaScriptEnabled*/ static get fieldJavaScriptEnabled() {
+    return 'javaScriptEnabled'
+  }
+  /*base_request_body.BaseRequestBody.fieldTimeZone*/ static get fieldTimeZone() {
+    return 'timeZone'
+  }
+   /*base_request_body.BaseRequestBody.fieldCustomerPhoneNumber*/ static get fieldCustomerPhoneNumber() {
+    return 'customerPhoneNumber'
+  }
+   /*base_request_body.BaseRequestBody.fieldCustomerPhoneCountryCode*/ static get fieldCustomerPhoneCountryCode() {
+    return 'customerPhoneCountryCode'
+  }
+  
+  
 }

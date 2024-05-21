@@ -1,12 +1,17 @@
 {
   "name": "react_geideapay",
-  "version": "1.0.0",
+  "version": "5.0.0",
   "private": true,
   "dependencies": {
-    "react": "17.0.2",
+    "base64-arraybuffer": "^1.0.2",
+    "clear": "^0.1.0",
+    "crypto-js": "^4.2.0",
+    "js-big-decimal": "^2.0.7",
     "lodash.compact": "^3.0.1",
     "moment": "^2.29.1",
     "native-base": "^2.15.2",
+    "prop-types": "^15.8.1",
+    "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-native": "0.68.0",
     "react-native-base64": "^0.2.1",
@@ -18,8 +23,7 @@
     "react-native-vector-icons": "^9.1.0",
     "react-native-web": "0.17.1",
     "react-native-webview": "^11.18.1",
-    "utf8": "^3.0.0",
-    "prop-types": "^15.8.1"
+    "utf8": "^3.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",

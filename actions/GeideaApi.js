@@ -1,18 +1,35 @@
 import base64 from 'react-native-base64'
 import AuthenticationApiResponse from '../response/AuthenticationApiResponse'
 import OrderApiResponse from '../response/OrderApiResponse'
-const ROOT_URL = 'https://api.merchant.geidea.net/pgw/api'
+import SessionApiResponse from '../response/SessionApiResponse';
 
-const InitiateAuthentication_URL = `${ROOT_URL}/v3/direct/authenticate/initiate`
-const InitiateAuthentication_V4_URL = `${ROOT_URL}/v4/direct/authenticate/initiate`
-const AuthenticatePayer_URL = `${ROOT_URL}/v3/direct/authenticate/payer`
-const AuthenticatePayer_V4_URL = `${ROOT_URL}/v4/direct/authenticate/payer`
-const DirectPay_URL = `${ROOT_URL}/v1/direct/pay`
-const PayWithToken_URL = `${ROOT_URL}/v1/direct/pay/token`
-const Cancel_URL = `${ROOT_URL}/v1/direct/cancel`
-const Capture_URL = `${ROOT_URL}/v1/direct/capture`
-const Refund_URL = `${ROOT_URL}/v1/direct/refund`
-const VoidOperation_URL = `${ROOT_URL}/v1/direct/refund`
+
+const Environment = {
+  'egy_production': { 
+    name: 'Egypt - Production',
+    environmentUrl: 'https://api.merchant.geidea.net'
+  },
+  'egy_preproduction': { 
+    name: 'Egypt - Preproduction',
+    environmentUrl: 'https://api-merchant.staging.geidea.net',
+  },
+  'uae_production': { 
+    name: 'UAE - Production',
+    environmentUrl: 'https://api.merchant.geidea.ae'
+  },
+  'uae_preproduction': { 
+    name: 'UAE - Preproduction',
+    environmentUrl: 'https://api-merchant.staging.geidea.ae'
+  },
+  'ksa_production': { 
+    name: 'KSA - Production',
+    environmentUrl: 'https://api.ksamerchant.geidea.net'
+  },
+  'ksa_preproduction': { 
+    name: 'KSA - Preproduction',
+    environmentUrl: 'https://api-ksamerchant.staging.geidea.net' 
+  }
+};
 
 const processRequest = async (path, method, data, publicKey, apiPassword) => {
   data.billingAddress = {
@@ -51,6 +68,51 @@ const processRequest = async (path, method, data, publicKey, apiPassword) => {
 }
 
 class GeideaApi {
+  
+  static getEnumFromName = (name) => {
+    console.log(name);
+    for (const key in Environment) {
+      console.log(key);
+      if (Environment.hasOwnProperty(key)) {
+        if (Environment[key].name === name) {
+          console.log(Environment[key]);
+          return Environment[key];
+        }
+      }
+    }
+    return Environment.egy_production; // If no enum with the provided name is found
+  };
+
+  static environment;
+
+  static getEnvironments = () =>{
+    return Object.values(Environment).map(env => env.name);
+  }
+
+  static setSelectedEnvironment =(environment)=>{
+      this.environment = environment;
+  }
+
+  static getBaseUrl = () => {
+    return this.getEnumFromName(this.environment).environmentUrl;
+  };
+  
+  static Create_Session_URL = () =>  `${this.getBaseUrl()}/payment-intent/api/v2/direct/session`;
+  static InitiateAuthentication_URL = () =>  `${this.getBaseUrl()}/pgw/api/v3/direct/authenticate/initiate`;
+  static InitiateAuthentication_V4_URL = () =>  `${this.getBaseUrl()}/pgw/api/v4/direct/authenticate/initiate`;
+  static InitiateAuthentication_V6_URL = () =>  `${this.getBaseUrl()}/pgw/api/v6/direct/authenticate/initiate`;
+  static AuthenticatePayer_URL = () =>  `${this.getBaseUrl()}/pgw/api/v3/direct/authenticate/payer`;
+  static AuthenticatePayer_V4_URL = () =>  `${this.getBaseUrl()}/pgw/api/v4/direct/authenticate/payer`;
+  static AuthenticatePayer_V6_URL = () =>  `${this.getBaseUrl()}/pgw/api/v6/direct/authenticate/payer`;
+  static DirectPay_URL = () =>  `${this.getBaseUrl()}/pgw/api/v1/direct/pay`;
+  static DirectPay_V2_URL = () =>  `${this.getBaseUrl()}/pgw/api/v2/direct/pay`;
+  static PayWithToken_URL = () =>  `${this.getBaseUrl()}/pgw/api/v1/direct/pay/token`;
+  static Cancel_URL = () =>  `${this.getBaseUrl()}/pgw/api/v1/direct/cancel`;
+  static Capture_URL = () =>  `${this.getBaseUrl()}/pgw/api/v1/direct/capture`;
+  static Refund_URL = () =>  `${this.getBaseUrl()}/pgw/api/v1/direct/refund`;
+  static VoidOperation_URL = () =>  `${this.getBaseUrl()}/pgw/api/v1/direct/refund`;
+
+
   static _processPayment(url, publicKey, apiPassword, payload) {
     console.log('API_URL',url)
     console.log('API_PAYLOAD',payload)
@@ -79,6 +141,38 @@ class GeideaApi {
     })
   }
 
+  static createSession(
+    createSessionRequestBody,
+    PublicKey,
+    ApiPassword
+  ) {
+    const createSessionRequest = async () => {
+      const apiResponse = await this._processPayment(
+        this.Create_Session_URL(),
+        PublicKey,
+        ApiPassword,
+        createSessionRequestBody.paramsMap()
+      )
+      return apiResponse
+    }
+    let myPromise = new Promise(function (myResolve, myReject) {
+      let apiResponse = createSessionRequest()
+      apiResponse
+        .then((res) => {
+          let response = SessionApiResponse.fromJson(res)
+          if (response.responseCode === '000') {
+            myResolve(response)
+          } else {
+            myReject(response.detailedResponseMessage)
+          }
+        })
+        .catch((err) => {
+          myReject(err)
+        })
+    })
+    return myPromise
+  }
+
   static initiateAuthentication(
     initiateAuthenticationRequestBody,
     PublicKey,
@@ -86,7 +180,7 @@ class GeideaApi {
   ) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        InitiateAuthentication_URL,
+        this.InitiateAuthentication_URL(),
         PublicKey,
         ApiPassword,
         initiateAuthenticationRequestBody.paramsMap()
@@ -118,7 +212,39 @@ class GeideaApi {
   ) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        InitiateAuthentication_V4_URL,
+       this.InitiateAuthentication_V4_URL(),
+        PublicKey,
+        ApiPassword,
+        initiateAuthenticationRequestBody.paramsMap()
+      )
+      return apiResponse
+    }
+    let myPromise = new Promise(function (myResolve, myReject) {
+      let apiResponse = processPayment()
+      apiResponse
+        .then((res) => {
+          let response = AuthenticationApiResponse.fromJson(res)
+          if (response.responseCode === '000') {
+            myResolve(response)
+          } else {
+            myReject(response.detailedResponseMessage)
+          }
+        })
+        .catch((err) => {
+          myReject(err)
+        })
+    })
+    return myPromise
+  }
+
+  static initiateV6Authentication(
+    initiateAuthenticationRequestBody,
+    PublicKey,
+    ApiPassword
+  ) {
+    const processPayment = async () => {
+      const apiResponse = await this._processPayment(
+        this.InitiateAuthentication_V6_URL(),
         PublicKey,
         ApiPassword,
         initiateAuthenticationRequestBody.paramsMap()
@@ -151,7 +277,7 @@ class GeideaApi {
   ) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        AuthenticatePayer_URL,
+        this.AuthenticatePayer_URL(),
         PublicKey,
         ApiPassword,
         payerAuthenticationRequestBody.paramsMap()
@@ -214,7 +340,72 @@ class GeideaApi {
   ) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        AuthenticatePayer_V4_URL,
+        this.AuthenticatePayer_V4_URL(),
+        PublicKey,
+        ApiPassword,
+        payerAuthenticationRequestBody.paramsMap()
+      )
+      let status =
+        apiResponse.responseMessage != null
+          ? apiResponse.responseMessage.toLowerCase()
+          : null
+      let code =
+        apiResponse.responseCode != null
+          ? apiResponse.responseCode.toLowerCase()
+          : null
+      if (status === 'success' && code === '000') {
+        let htmlBodyContent = apiResponse.htmlBodyContent.replace(
+          'target="redirectTo3ds1Frame"',
+          'target="_top"'
+        )
+        if (navigationProp) {
+          navigationProp.push('Browser', {
+            title: '3DS',
+            content: htmlBodyContent,
+            returnUrl: payerAuthenticationRequestBody.returnUrl,
+          })
+        }
+      }
+      return apiResponse
+    }
+    if (navigationProp == null) {
+      return processPayment()
+    }
+    let myPromise = new Promise(function (myResolve, myReject) {
+      let apiResponse = processPayment()
+      apiResponse.catch((err) => {
+        console.log('err:' + err)
+        myReject(err)
+      })
+      navigationProp.addListener('focus', () => {
+        apiResponse
+          .then((res) => {
+            let response = AuthenticationApiResponse.fromJson(res)
+            if (response.responseCode === '000') {
+              myResolve(response)
+            } else {
+              myReject(response.detailedResponseMessage)
+            }
+          })
+          .catch((err) => {
+            console.log('apiResponse error ' + err)
+            myReject(err)
+          })
+      })
+    })
+    return myPromise
+  }
+
+
+  static payerV6Authentication(
+    payerAuthenticationRequestBody,
+    PublicKey,
+    ApiPassword,
+    navigationProp
+  ) {
+    const processPayment = async () => {
+      const apiResponse = await this._processPayment(
+        this.AuthenticatePayer_V6_URL(),
         PublicKey,
         ApiPassword,
         payerAuthenticationRequestBody.paramsMap()
@@ -273,7 +464,7 @@ class GeideaApi {
   static payDirect(payDirectRequestBody, PublicKey, ApiPassword) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        DirectPay_URL,
+        this.DirectPay_URL(),
         PublicKey,
         ApiPassword,
         payDirectRequestBody.paramsMap()
@@ -298,10 +489,39 @@ class GeideaApi {
     return myPromise
   }
 
+  static payV2Direct(payDirectRequestBody, PublicKey, ApiPassword) {
+    const processPayment = async () => {
+      const apiResponse = await this._processPayment(
+        this.DirectPay_V2_URL(),
+        PublicKey,
+        ApiPassword,
+        payDirectRequestBody.paramsMap()
+      )
+      return apiResponse
+    }
+    let myPromise = new Promise(function (myResolve, myReject) {
+      let apiResponse = processPayment()
+      apiResponse
+        .then((res) => {
+          let response = OrderApiResponse.fromJson(res)
+          if (response.responseCode === '000') {
+            myResolve(response)
+          } else {
+            myReject(response.detailedResponseMessage)
+          }
+        })
+        .catch((err) => {
+          myReject(err)
+        })
+    })
+    return myPromise
+  }
+
+
   static payWithToken(payTokenRequestBody, PublicKey, ApiPassword) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        PayWithToken_URL,
+        this.PayWithToken_URL(),
         PublicKey,
         ApiPassword,
         payTokenRequestBody.paramsMap()
@@ -329,7 +549,7 @@ class GeideaApi {
   static refund(refundRequestBody, PublicKey, ApiPassword) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        Refund_URL,
+        this.Refund_URL(),
         PublicKey,
         ApiPassword,
         refundRequestBody.paramsMap()
@@ -357,7 +577,7 @@ class GeideaApi {
   static cancel(cancelRequestBody, PublicKey, ApiPassword) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        Cancel_URL,
+        this.Cancel_URL(),
         PublicKey,
         ApiPassword,
         cancelRequestBody.paramsMap()
@@ -385,7 +605,7 @@ class GeideaApi {
   static voidOperation(refundRequestBody, PublicKey, ApiPassword) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        VoidOperation_URL,
+        this.VoidOperation_URL(),
         PublicKey,
         ApiPassword,
         refundRequestBody.paramsMap()
@@ -413,7 +633,7 @@ class GeideaApi {
   static capture(captureRequestBody, PublicKey, ApiPassword) {
     const processPayment = async () => {
       const apiResponse = await this._processPayment(
-        Capture_URL,
+        this.Capture_URL(),
         PublicKey,
         ApiPassword,
         captureRequestBody.paramsMap()

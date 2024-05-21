@@ -314,7 +314,7 @@ class PaymentModal extends CheckoutLogic {
     this.setState({
       showSuccessReceipt: true,
     });
-    setTimeout(() => this.setState({showSuccessReceipt: false}), 15000);
+    setTimeout(() => this.setState({showSuccessReceipt: false}), 500);
     this._handleCloseModal();
     this.props.onPaymentSuccess(res)?.();
   }
@@ -325,7 +325,7 @@ class PaymentModal extends CheckoutLogic {
     this.setState({
       showFailureReceipt: true,
     });
-    setTimeout(() => this.setState({showFailureReceipt: false}), 15000);
+    setTimeout(() => this.setState({showFailureReceipt: false}), 1000);
     this._handleCloseModal();
     this.props.onPaymentFailure(res)?.();
   }

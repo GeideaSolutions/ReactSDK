@@ -316,7 +316,7 @@ class CheckoutScreen extends CheckoutLogic {
             apipasswordforrefund,
           });
         });
-      }, 15000);
+      }, 500);
     });
   };
 
@@ -331,7 +331,7 @@ class CheckoutScreen extends CheckoutLogic {
             geideaApiResponse,
           });
         });
-      }, 15000);
+      }, 1500);
     });
   };
 
