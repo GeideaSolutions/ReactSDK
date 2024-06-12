@@ -20,6 +20,13 @@ export const formatAmount = (amount) => {
     .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
 }
 
+export const formatAmountNoComma = (amount) => {
+  const val = [null, undefined].includes(amount) ? 0 : amount
+  return parseFloat(val)
+    .toFixed(2)
+    .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1')
+}
+
 export const formatCurrencyAmountLabel = (props,amount) => {
   return `PAY ${formatAmount(amount)} ${props.currency}`
 }
