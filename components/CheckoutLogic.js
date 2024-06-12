@@ -11,7 +11,7 @@ import PaymentCard from '../models/PaymentCard';
 import expiryDate from '../models/expiryDate';
 import AuthenticationApiResponse from '../response/AuthenticationApiResponse';
 import OrderResponse from '../response/OrderApiResponse';
-import {formatAmount, formatCurrencyAmountLabel} from '../utils';
+import {formatAmountNoComma, formatCurrencyAmountLabel} from '../utils';
 import ThreeDSScreenModal from './ThreeDSModal';
 import Address from '../models/adress';
 import PayV2DirectRequestBody from '../request/PayV2DirectRequestBody';
@@ -510,7 +510,7 @@ class CheckoutLogic extends Component {
   }
   
   generateSignature(publicKey, orderAmount, orderCurrency, merchantRefId, apiPass, timestamp) {
-      const amountStr = formatAmount(orderAmount);
+      const amountStr = formatAmountNoComma(orderAmount);
       const data = `${publicKey}${amountStr}${orderCurrency}${merchantRefId}${timestamp}`;
       // Convert the key to WordArray
       const key = CryptoJS.enc.Utf8.parse(apiPass);
