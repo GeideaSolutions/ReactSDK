@@ -1,5 +1,3 @@
-import React from 'react';
-import {View} from 'react-native';
 import ThreeDS from './ThreeDS';
 class ThreeDSScreen extends ThreeDS {
   constructor(props) {

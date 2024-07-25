@@ -4,6 +4,7 @@ export default class AuthenticationApiResponse extends ApiResponse {
   static orderId$ = 'ApiResponse.orderId'
   static threeDSecureId$ = 'ApiResponse.threeDSecureId'
   static html$ = 'ApiResponse.html'
+  static htmlBodyContent$ = 'ApiResponse.htmlBodyContent'
 
   constructor(opts) {
     super(opts)
@@ -11,9 +12,11 @@ export default class AuthenticationApiResponse extends ApiResponse {
     let threeDSecureId =
       opts && 'threeDSecureId' in opts ? opts.threeDSecureId : null
     let html = opts && 'html' in opts ? opts.html : null
+    let htmlBodyContent = opts && 'htmlBodyContent' in opts ? opts.htmlBodyContent : null
     this.orderId = orderId
     this.threeDSecureId = threeDSecureId
     this.html = html
+    this.htmlBodyContent = htmlBodyContent
   }
   get orderId() {
     return this[AuthenticationApiResponse.orderId$]
@@ -27,6 +30,9 @@ export default class AuthenticationApiResponse extends ApiResponse {
   set threeDSecureId(value) {
     this[AuthenticationApiResponse.threeDSecureId$] = value
   }
+
+
+  
   static fromJson(map) {
     let response = super.fromJson(map)
     let orderId = map && 'orderId' in map ? map.orderId : null
@@ -41,9 +47,11 @@ export default class AuthenticationApiResponse extends ApiResponse {
       response.threeDSecureId = threeDSecureId
       if (redirectHtml != null) {
         response.html = redirectHtml
+        response.htmlBodyContent = htmlBodyContent
       }
       if (htmlBodyContent != null) {
         response.html = htmlBodyContent
+        response.htmlBodyContent = htmlBodyContent
       }
     }
     return response

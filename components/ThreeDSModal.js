@@ -28,6 +28,11 @@ class ThreeDSModal extends ThreeDS {
       this.state.count = 0;
       return onRequestClose();
     }
+    if (nativeEvent.url.includes('/redirect/')) {
+      //console.log('Close 3DS Modal');
+      this.state.count = 0;
+      return onRequestClose();
+    }
     if (
       nativeEvent.url.includes('callback') &&
       nativeEvent.progress === 1 &&

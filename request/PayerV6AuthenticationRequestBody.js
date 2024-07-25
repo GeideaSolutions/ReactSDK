@@ -18,6 +18,7 @@ export default class PayerV6AuthenticationRequestBody {
   static timeZone$ = '_timeZone'
   static source$ = '_source'
   static returnUrl$ =  '_returnurl' 
+  static cvv$ = '_cvv'
   
   constructor(_sessionId,
     _orderId,
@@ -38,6 +39,8 @@ export default class PayerV6AuthenticationRequestBody {
       opts && 'cardOnFile' in opts ? opts.cardOnFile : null;
       let _merchantName =
       opts && 'merchantName' in opts ? opts.merchantName : null;
+      let _cvv =
+      opts && 'cvv' in opts ? opts.cvv : null;
     let _javaEnabled = opts && 'javaEnabled' in opts ? opts.javaEnabled : null
     let _browser = opts && 'browser' in opts ? opts.browser : null
     let _javaScriptEnabled = opts && 'javaScriptEnabled' in opts ? opts.javaScriptEnabled : null
@@ -64,6 +67,7 @@ export default class PayerV6AuthenticationRequestBody {
       this.javaScriptEnabled = _javaScriptEnabled
       this.browser = _browser
       this.returnUrl = _returnUrl
+      this.cvv = _cvv
   }
   // get amount() {
   //   return this[PayerAuthenticationRequestBody._amount$]
@@ -183,6 +187,9 @@ export default class PayerV6AuthenticationRequestBody {
     }
     if(this.paymentMethod!=null){
     params[BaseRequestBody.fieldPaymentMethod] = this.paymentMethod.toMap()
+  }
+  if(this.cvv!=null){
+    params[BaseRequestBody.fieldCvv] = this.cvv
   }
     params[BaseRequestBody.fieldBrowser] = 'ReactNativeSDK'
     params["device"] = {

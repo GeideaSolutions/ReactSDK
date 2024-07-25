@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {View, Text, StyleSheet, Image, Switch} from 'react-native';
+import {View, Text, StyleSheet, Image, Switch, Alert} from 'react-native';
 import {Section, Button} from './common';
 import GeideaApi from '../actions/GeideaApi';
 import InitiateV6AuthenticationRequestBody from '../request/InitiateV6AuthenticationRequestBody';
@@ -16,13 +16,12 @@ import ThreeDSScreenModal from './ThreeDSModal';
 import Address from '../models/adress';
 import PayV2DirectRequestBody from '../request/PayV2DirectRequestBody';
 import CreateSessionRequestBody from '../request/CreateSessionRequestBody';
-import base64 from 'react-native-base64';
 import SessionApiResponse from '../response/SessionApiResponse';
 import moment from 'moment/moment';
 import CryptoJS from 'crypto-js';
 import DeviceIdentification from '../models/DeviceIdentification';
+import TokenApiResponse from '../response/TokenApiResponse';
 
-let returnUrl = 'https://returnurl.com';
 const ENCRYPTION_ALGORITHM = 'HmacSHA256';
 class CheckoutLogic extends Component {
   
@@ -32,10 +31,12 @@ class CheckoutLogic extends Component {
       loading: false,
       selectedOption: '',
       amount: '',
+      token: '',
       creditCardFormValid: false,
       creditCardFormData: {},
       rememberMe: false,
       threeDSecureModalVisible: false,
+      tokenTransaction: false,
       htmlBodyContent: '',
       successResponse: '',
       failureResponse: '',
@@ -51,6 +52,7 @@ class CheckoutLogic extends Component {
       showFailureReceipt: false,
       callbackUrl: '',
       merchantReferenceId: '',
+      initiatedBy: '',
       selectedEnvironment: 'Egypt - Production',
       selectedEnvironmentUrl: 'https://api.merchant.geidea.net/pgw',
       selectedEnvironmentSessionUrl:'https://api.merchant.geidea.net/payment-intent',
@@ -95,6 +97,7 @@ class CheckoutLogic extends Component {
     var selectedEnvironment;
     var selectedEnvironmentUrl;
     var selectedEnvironmentSessionUrl;
+    var initiatedBy;
     if (props != null && props.shippingAddress != null) {
       shippingAddress = props.shippingAddress;
     }
@@ -116,6 +119,10 @@ class CheckoutLogic extends Component {
     if(props!=null && props.selectedEnvironment !=null){
       selectedEnvironment = props.selectedEnvironment;
     }
+    if(props!=null && props.initiatedBy !=null){
+      initiatedBy = props.initiatedBy;
+    }
+
     var callbackUrl = 'https://returnurl.com';
     if (props != null && props.route != null && props.route.params != null) {
       shippingAddress = this.props.route.params.shippingAddress;
@@ -124,6 +131,7 @@ class CheckoutLogic extends Component {
       phoneNumber = this.props.route.params.phoneNumber;
       merchantReferenceId = this.props.route.params.merchantReferenceID;
       selectedEnvironment = this.props.route.params.selectedEnvironment;
+      initiatedBy = this.props.route.params.initiatedBy;
       callbackUrl =
         this.props.route.params.callbackUrl == ''
           ? 'https://returnurl.com'
@@ -138,6 +146,7 @@ class CheckoutLogic extends Component {
       creditCardFormData: {},
       rememberMe: false,
       threeDSecureModalVisible: false,
+      tokenTransaction: false,
       htmlBodyContent: '',
       orderId: null,
       threeDSecureId: null,
@@ -146,6 +155,7 @@ class CheckoutLogic extends Component {
       customerEmail: customerEmail,
       phoneNumber: phoneNumber,
       callbackUrl: callbackUrl,
+      initiatedBy: initiatedBy,
       merchantReferenceId: merchantReferenceId,
       selectedEnvironment: selectedEnvironment,
       selectedEnvironmentUrl: selectedEnvironmentUrl,
@@ -176,6 +186,172 @@ class CheckoutLogic extends Component {
     return moment().format("M/D/YYYY h:mm:ss A");
   }
   
+  _handleHPPPaymentRequest(amount) {
+    const {
+      currency,
+      publicKey,
+      apiPassword,
+      callbackUrl,
+      merchantReferenceID,
+    } = this.type === 'modal' ? this.props : this.myProps;
+
+    this.setState({amount: amount});
+    this.setState({loading: true});
+    let timestamp = this.getCurrentTimestamp();
+    let merchantReferenceId = merchantReferenceID;
+    this._createSession(
+      formatAmountNoComma(amount),
+      currency,
+      callbackUrl,
+      merchantReferenceId,
+      timestamp,
+      this.generateSignature(publicKey,formatAmountNoComma(amount),currency,merchantReferenceID,apiPassword,timestamp),
+      publicKey,
+      apiPassword,
+    ).then(res => { 
+      let sessionApiResponse = SessionApiResponse.fromJson(res);
+      if (sessionApiResponse.responseCode !== '000') {
+        return this.onPaymentFailure(sessionApiResponse);
+      }
+      this.openBrowser(sessionApiResponse.session.id, publicKey, apiPassword);
+    }
+    );
+   }
+
+ 
+   handleResult = (success, data) => {
+    // Handle the result here (e.g., update state)
+    if(success)
+      this.onPaymentSuccess(data);
+    else
+      this.onPaymentFailure(data);
+  };
+
+  openBrowser = async(sessionId, publicKey, apiPassword) =>{
+    this.props.navigation.navigate('WebPayment',{sessionId, onGoBack: this.handleResult, publicKey, apiPassword});
+   }
+  
+
+   async fetchCardData(amount, tokenId) {
+    const {
+      currency,
+      publicKey,
+      apiPassword,
+      callbackUrl,
+      merchantReferenceID,
+    } = this.type === 'modal' ? this.props : this.myProps;
+    this.setState({
+      threeDSecureModalVisible: false,
+      ttokenTransaction: true,
+    });
+    let timestamp = this.getCurrentTimestamp();
+    let merchantReferenceId = merchantReferenceID;
+  
+    try {
+      const sessionResponse = await this._createSession(
+        amount,
+        currency,
+        callbackUrl,
+        merchantReferenceId,
+        timestamp,
+        this.generateSignature(publicKey, amount, currency, merchantReferenceID, apiPassword, timestamp),
+        publicKey,
+        apiPassword,
+        tokenId
+      );
+  
+      let sessionApiResponse = SessionApiResponse.fromJson(sessionResponse);
+      if (sessionApiResponse.responseCode !== '000') {
+        this.onPaymentFailure(sessionApiResponse);
+        return null;
+      }
+      const sessionId = sessionApiResponse.session.id;
+      const tokenResponse = await GeideaApi.getTokenInfo(sessionId, publicKey, apiPassword);
+      let tokenInfo = TokenApiResponse.fromJson(tokenResponse);
+       // Convert cardExpiry to a formatted string if it is an object
+    if (tokenInfo.expiryDate && typeof tokenInfo.expiryDate === 'object') {
+      tokenInfo.expiryDate = `${tokenInfo.expiryDate.month}/${tokenInfo.expiryDate.year}`;
+    }
+      return {tokenInfo, sessionId};
+    } catch (error) {
+      this.onPaymentFailure(error);
+      return null;
+    }
+  }
+  
+   _handleTokenPaymentRequest(sessionId,cvv) {
+    const {
+      publicKey,
+      apiPassword,
+      callbackUrl,
+      returnUrl,
+    } = this.type === 'modal' ? this.props : this.myProps; 
+    this.setState({loading: true});
+    const deviceIdentification = new DeviceIdentification('bc8e1fc68c1c6188f95947cec64ce1b0',
+        'en',
+        'Desktops/windows/Safari-537.36/Website');
+    this._initiateTokenAuthentication(
+      sessionId,
+      callbackUrl,
+      returnUrl,
+      '',
+      publicKey,
+      apiPassword,
+      deviceIdentification
+    )
+      .then(res => {
+        let initiateAuthenticationResponse =
+        AuthenticationApiResponse.fromJson(res);
+      if (initiateAuthenticationResponse.responseCode !== '000') {
+        return this.onPaymentFailure(initiateAuthenticationResponse);
+      }
+      this._payerTokenAuthentication(
+        sessionId,
+        initiateAuthenticationResponse.orderId,
+        deviceIdentification,
+        -120,
+        'HPP',
+        callbackUrl,
+        returnUrl,
+        publicKey,
+        apiPassword,
+        cvv
+      ).then(payerAuthenticationResponse => {
+        let response = AuthenticationApiResponse.fromJson(
+          payerAuthenticationResponse,
+        );
+        if (response.responseCode === '000') {
+          //handle 3d secure
+          let htmlBodyContent = response.htmlBodyContent.replace(
+            'target="redirectTo3ds1Frame"',
+            'target="_top"',
+          );
+          htmlBodyContent = htmlBodyContent.replace(
+            'target="challengeFrame"',
+            'target="_top"',
+          );
+          this.setState({
+            sessionId: sessionId,
+            source: 'HPP',
+            threeDSecureModalVisible: true,
+            tokenTransaction: true,
+            htmlBodyContent: htmlBodyContent,
+            orderId: response.orderId,
+            threeDSecureId: response.threeDSecureId,
+            loading: false,
+          });
+        } else {
+          return this.onPaymentFailure(response);
+        }
+      })
+      .catch(err => {
+        return this.onPaymentFailure(err);
+      });
+      }) 
+      .catch(err => {
+        this.onPaymentFailure(err)
+      });
+  }
 
   _handlePaymentRequest(amount) {
     const {
@@ -189,8 +365,6 @@ class CheckoutLogic extends Component {
       merchantReferenceID,
     } = this.type === 'modal' ? this.props : this.myProps;
     
-
-    console.log('printing state params' +JSON.stringify(this.state));
     const {rememberMe} = this.state;
     const customerEmail = this.state.customerEmail ?? this.myProps.customerEmail;
     const sameAddress = this.state.sameAddress ?? this.myProps.sameAddress;
@@ -289,6 +463,7 @@ class CheckoutLogic extends Component {
                   sessionId: sessionApiResponse.session.id,
                   source: 'HPP',
                   threeDSecureModalVisible: true,
+                  tokenTransaction: false,
                   htmlBodyContent: htmlBodyContent,
                   orderId: response.orderId,
                   threeDSecureId: response.threeDSecureId,
@@ -317,7 +492,8 @@ class CheckoutLogic extends Component {
     timestamp,
     signature,
     publicKey,
-    apiPassword){
+    apiPassword,
+    tokenId, initiatedBy){
     let createSessionRequestBody =
       new CreateSessionRequestBody(
         amount,
@@ -330,7 +506,8 @@ class CheckoutLogic extends Component {
         null,
         null,
         signature,
-        null
+        null,
+         'https://www.google.com', tokenId
       );
     return GeideaApi.createSession(
       createSessionRequestBody,
@@ -410,6 +587,26 @@ class CheckoutLogic extends Component {
     );
   }
 
+  _initiateTokenAuthentication(
+    sessionId,
+    callbackUrl,
+    returnUrl,
+    cardNumber,
+    publicKey,
+    apiPassword,
+    deviceIdentification
+  ) {
+    
+    let initiateAuthenticationRequestBody =
+      new InitiateV6AuthenticationRequestBody(
+        sessionId,callbackUrl,null, returnUrl,null,deviceIdentification
+      );
+    return GeideaApi.initiateV6TokenAuthentication(
+      initiateAuthenticationRequestBody,
+      publicKey,
+      apiPassword,
+    );
+  }
   _payerAuthentication(
     amount,
     currency,
@@ -508,6 +705,39 @@ class CheckoutLogic extends Component {
       null,
     );
   }
+
+  _payerTokenAuthentication(
+    sessionId,
+      orderId,
+      deviceIdentification,
+      timeZone,
+      source,
+      callbackUrl,
+      returnUrl,
+    publicKey,
+    apiPassword,
+    cvv
+  ) {
+    let payerAuthenticationRequestBody = new PayerV6AuthenticationRequestBody(
+      sessionId,
+      orderId,
+      null,
+      deviceIdentification,
+      timeZone,
+      source,
+      {
+        callbackUrl: callbackUrl,
+        returnUrl: returnUrl,
+      },
+      cvv
+    );
+    return GeideaApi.payerV6TokenAuthentication(
+      payerAuthenticationRequestBody,
+      publicKey,
+      apiPassword,
+      null,
+    );
+  }
   
   generateSignature(publicKey, orderAmount, orderCurrency, merchantRefId, apiPass, timestamp) {
       const amountStr = formatAmountNoComma(orderAmount);
@@ -520,6 +750,17 @@ class CheckoutLogic extends Component {
       const hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
       return hashInBase64;
   }
+
+  generatePaySignature(publicKey, sessionId, apiPass, timestamp) {
+    const data = `${publicKey}${sessionId}${timestamp}`;
+    // Convert the key to WordArray
+    const key = CryptoJS.enc.Utf8.parse(apiPass);
+    // Compute HMAC
+    const hash = CryptoJS.HmacSHA256(data, key);
+    // Encode the hash as Base64
+    const hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
+    return hashInBase64;
+}
 
   _directPay(
     amount,
@@ -584,10 +825,64 @@ class CheckoutLogic extends Component {
     return GeideaApi.payV2Direct(payDirectRequestBody, publicKey, apiPassword);
   }
 
+  _directTokenPayV2(
+    sessionId,
+    orderId,
+    threeDSecureId,
+    source,
+    cvv,
+    publicKey,
+    apiPassword,
+  ) {
+    this.setState({loading: true});
+    let timestamp = this.getCurrentTimestamp();
+    let Signature = this.generatePaySignature(publicKey,sessionId,apiPassword,timestamp);
+    let initiatedBy = 'Internet'
+    let paymentOperation ='Pay'
+    let payDirectRequestBody = new PayV2DirectRequestBody(
+      sessionId,
+      threeDSecureId,
+      orderId,
+      null,
+      source,
+      {
+      initiatedBy,
+      paymentOperation,
+      cvv,
+      Signature,
+      timestamp
+      }
+    );
+    return GeideaApi.payV2Token(payDirectRequestBody, publicKey, apiPassword);
+  }
+
   _closeThreeDSecureModal() {
     const {currency, publicKey, apiPassword} =
       this.type === 'modal' ? this.props : this.myProps;
-    const {sessionId, orderId, threeDSecureId, source, sameAddress} = this.state;
+    const {sessionId, orderId, threeDSecureId, source, sameAddress, cvv} = this.state;
+    if(this.state.tokenTransaction){
+      if (orderId && threeDSecureId && sessionId) {
+        this.setState({
+          threeDSecureModalVisible: false,
+          tokenTransaction: false,
+        });
+        this._directTokenPayV2(
+          sessionId,
+          orderId,
+          threeDSecureId,
+          source,
+          cvv,
+          publicKey,
+          apiPassword,
+        )
+          .then(res => {
+            let orderResponse = OrderResponse.fromJson(res);
+            this.onPaymentSuccess(orderResponse);
+          })
+          .catch(err => this.onPaymentFailure(err));
+      }
+      return;
+    }
     let billingAdd = new Address({
       countryCode: this.state.billingAddress?._countryCode
         ?? this.myProps.billingAddress?._countryCode,
@@ -621,6 +916,7 @@ class CheckoutLogic extends Component {
     if (orderId && threeDSecureId && sessionId) {
       this.setState({
         threeDSecureModalVisible: false,
+        tokenTransaction: false,
       });
       this._directPayV2(
         sessionId,
@@ -698,6 +994,7 @@ class CheckoutLogic extends Component {
   }
   _renderThreeDSecure() {
     const {threeDSecureModalVisible, htmlBodyContent} = this.state;
+    const {returnUrl} = this.type === 'modal' ? this.props : this.myProps;
     return (
       <ThreeDSScreenModal
         visible={threeDSecureModalVisible}

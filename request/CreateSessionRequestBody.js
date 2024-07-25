@@ -17,6 +17,10 @@ export default class CreateSessionRequestBody {
     static appearanceStylesHideGeideaLogo$ = "_appearanceStylesHideGeideaLogo";
     static appearanceUiMode$ = "_appearanceUiMode";
     static signature$ = "_signature";
+    static returnUrl$ = "_returnUrl";
+    static tokenId$ = "_tokenId";
+    static initiatedBy$ = "_initiatedBy";
+
 
     constructor(
         _amount,
@@ -29,13 +33,18 @@ export default class CreateSessionRequestBody {
         _cardOnFile = null,
         _appearance = null,
         _signature,
-        _paymentIntentId = null
+        _paymentIntentId = null,
+        _returnUrl,
+        _tokenId=null,
+        _initiatedBy=null,
     ) {
         this.amount = _amount
         this.currency = _currency
         this.language = _language
         this.timestamp = _timestamp
         this.callbackUrl = _callbackUrl
+        this.returnUrl = _returnUrl
+        this.tokenId = _tokenId
         this.merchantReferenceId = _merchantReferenceId
         this.paymentIntentId = _paymentIntentId
         this.paymentOperation = _paymentOperation
@@ -50,6 +59,7 @@ export default class CreateSessionRequestBody {
             uiMode: _appearance?.uiMode,
         };
         this.signature = _signature
+        this.initiatedBy = _initiatedBy
     }
 
     paramsMap() {
@@ -58,6 +68,8 @@ export default class CreateSessionRequestBody {
         params[BaseRequestBody.fieldCurrency] = this.currency
         params[BaseRequestBody.fieldTimestamp] = this.timestamp
         params[BaseRequestBody.fieldCallbackUrl] = this.callbackUrl
+        params[BaseRequestBody.fieldReturnUrl] = this.returnUrl
+        params[BaseRequestBody.fieldTokenId] = this.tokenId
         params[BaseRequestBody.fieldSignature] = this.signature
         params[BaseRequestBody.fieldMerchantReferenceId] = this.merchantReferenceId
         if(this.paymentIntentId!==null){
@@ -77,6 +89,11 @@ export default class CreateSessionRequestBody {
           
           if (this.language !== null) {
             params[BaseRequestBody.fieldLanguage] = this.language;
+          }
+          if(this.initiatedBy !== null){
+          params[BaseRequestBody.fieldInitiatedBy] = this.initiatedBy;
+          }else{
+            params[BaseRequestBody.fieldInitiatedBy] = "Internet";
           }
         return params
     }

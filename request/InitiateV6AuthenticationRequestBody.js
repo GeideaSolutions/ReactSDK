@@ -153,6 +153,7 @@ export default class InitiateV6AuthenticationRequestBody {
     params["device"] = {
         "browser":"Webview"
       }
+      params["source"] = 'HPP'
     return params
   }
 }

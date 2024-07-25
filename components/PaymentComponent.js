@@ -18,10 +18,11 @@ class PaymentComponent extends CheckoutLogic {
   };
 
   handleOptionChange = option => {
-    this.setState({selectedOption: option}, () => {
+    this.setState({selectedOption: option}, async () => {
       if (this.state.selectedOption === 'geidea') {
-        this.props.navigation.push('CheckoutScreen', {
+        var params = {
           amount: Number(this.state.amount),
+          token: this.props.route.params?.token,
           screenTitle: 'Card Payment',
           title: 'Sample Geidea Payment Example Screen',
           description:
@@ -55,7 +56,16 @@ class PaymentComponent extends CheckoutLogic {
           textColor: '#ffffff',
           backgroundColor: '#000000',
           cardColor: '#000000', //#ff4d00
-        });
+        }; 
+        if(this.props.route.params?.token){
+         this.props.navigation.push('CheckoutWithTokenScreen', params);
+        }else{
+          this.props.navigation.push('CheckoutScreen', params);
+        }
+        
+      }
+      if (this.state.selectedOption === 'hpp') {
+        this._handleHPPPaymentRequest(Number(this.state.amount));
       }
     });
   };
@@ -111,7 +121,7 @@ class PaymentComponent extends CheckoutLogic {
     const {selectedOption, amount} = this.state;
     const language = this.myProps.lang;
     const isPaymentOptionSelected =
-      selectedOption === 'geidea' || selectedOption === 'pci-dss';
+      selectedOption === 'geidea' || selectedOption === 'pci-dss' || selectedOption === 'hpp';
     return (
       <View style={styles.container}>
         <Text
@@ -168,6 +178,15 @@ class PaymentComponent extends CheckoutLogic {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.optionContainer}
+          onPress={() => this.handleOptionChanges('hpp')}>
+          <View style={styles.radioCircle}>
+            {selectedOption === 'hpp' && <View style={styles.selectedRb} />}
+          </View>
+
+          <Text style={styles.radioText}>HPP</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.optionContainer}
           onPress={() => this.handleOptionChange('pci-dss')}>
           <View style={styles.radioCircle}>
             {selectedOption === 'pci-dss' && <View style={styles.selectedRb} />}
@@ -182,7 +201,7 @@ class PaymentComponent extends CheckoutLogic {
                 styles.payButton,
                 !isPaymentOptionSelected && styles.disabledPayButton,
               ]}
-              onPress={() => this.handleOptionChange('geidea')}
+              onPress={() => this.handleOptionChange(this.state.selectedOption)}
               disabled={!isPaymentOptionSelected}>
               <Text style={styles.payButtonText}>Pay</Text>
             </TouchableOpacity>

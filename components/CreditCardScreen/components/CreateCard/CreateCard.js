@@ -1,10 +1,7 @@
-import React, { Fragment, useState } from 'react'
+import React, { useState } from 'react'
 import { View, Image } from 'react-native'
 import valid from 'card-validator'
-import CreditCard from '../common/CustomCreditCard'
 import Input from '../common/CustomInput'
-import {TextInput} from 'react-native-paper';
-import Icons from './Icons'
 
 import {
   validateCreditCard,
@@ -20,7 +17,6 @@ const CreateCard = (props) => {
   const backgroundColor= props.backgroundColor
   const language = props.language
   
-  const [rotate, setRotate] = useState(false)
   const [creditCard, setCreditCard] = useState({
     name: '',
     number: '',
@@ -44,7 +40,7 @@ const CreateCard = (props) => {
     name: language === 'English'? 'Card Holder Name' : 'اسم صاحب البطاقة',
     number: language === 'English'? 'Card Number' : 'رقم البطاقة',
     expiry: language === 'English'? 'Expiry Date' : 'تاريخ الإنتهاء',
-    cvc: language === 'English'? 'CCV' : 'الرقم الأمني',
+    cvc: language === 'English'? 'CVC' : 'الرقم الأمني',
   })
 
 
@@ -79,10 +75,10 @@ const CreateCard = (props) => {
 
   const IcontType = (type) => {
     var iconType;
-    if(type === 'american-express') {
+    if(type === 'american-express' || type === 'americanexpress') {
       iconType = require('./icons/stp_card_amex.png')
     } 
-    else if(type === 'diners-club') {
+    else if(type === 'diners-club' || type === 'dinersclub') {
       iconType = require('./icons/stp_card_diners.png')
     }
     else if(type === 'discover') {
@@ -91,7 +87,7 @@ const CreateCard = (props) => {
     else if(type === 'jcb') {
       iconType = require('./icons/stp_card_jcb.png')
     }
-    else if(type === 'master-card') {
+    else if(type === 'master-card' || type==='mastercard') {
       iconType = require('./icons/stp_card_mastercard.png')
     }
     else if(type === 'visa') {

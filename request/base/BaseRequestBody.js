@@ -90,6 +90,9 @@ export default class BaseRequestBody {
    /*base_request_body.BaseRequestBody.fieldSignature*/ static get fieldSignature() {
     return 'signature'
   }
+  static get fieldSSignature() {
+    return 'Signature'
+  }
    /*base_request_body.BaseRequestBody.fieldTimestamp*/ static get fieldTimestamp() {
     return 'timestamp'
   }

@@ -10,6 +10,10 @@ export default class PayV2DirectRequestBody {
   static paymentMethod$ = '_paymentMethod'
   static returnUrl$ = '_returnUrl'
   static source$ = '_source'
+  static initiatedBy$ ='_initiatedBy'
+  static cvv$ = '_cvv'
+  static Signature = '_Signature'
+  static timestamp = '_timestamp'
 
   constructor(
     _sessionId,
@@ -27,15 +31,28 @@ export default class PayV2DirectRequestBody {
       opts && 'customerPhoneNumber' in opts ? opts.customerPhoneNumber : null
     let _customerPhoneCountryCode =
       opts && 'customerPhoneCountryCode' in opts ? opts.customerPhoneCountryCode : null
+    let _initiatedBy =
+      opts && 'initiatedBy' in opts ? opts.initiatedBy : null
+    let _cvv =
+      opts && 'cvv' in opts ? opts.cvv : null
+    let _Signature =
+      opts && 'Signature' in opts ? opts.Signature : null
+    let _timestamp =
+      opts && 'timestamp' in opts ? opts.timestamp : null
+      
     this.threeDSecureId = _threeDSecureId
     this.orderId = _orderId
     this.paymentMethod = _paymentMethod
     this.returnUrl = _returnUrl;
     this.sessionId = _sessionId;
+    this.cvv = _cvv;
     this.source = _source
     this.paymentOperation = _paymentOperation
     this.customerPhoneCountryCode = _customerPhoneCountryCode;
     this.customerPhoneNumber = _customerPhoneNumber;
+    this.initiatedBy = _initiatedBy;
+    this.Signature = _Signature;
+    this.timestamp = _timestamp;
   }
   // get amount() {
   //   return this[PayDirectRequestBody._amount$]
@@ -97,8 +114,22 @@ export default class PayV2DirectRequestBody {
     params[BaseRequestBody.fieldSessionId] = this.sessionId
     params[BaseRequestBody.fieldThreeDSecureId] = this.threeDSecureId
     params[BaseRequestBody.fieldOrderId] = this.orderId
+    if(this.Signature!=null){
+      params[BaseRequestBody.fieldSSignature] = this.Signature
+    }
+    if(this.timestamp!=null){
+      params[BaseRequestBody.fieldTimestamp] = this.timestamp
+    }
+    if(this.paymentMethod !=null){
     params[BaseRequestBody.fieldPaymentMethod] = this.paymentMethod.toMap()
+    }
     params[BaseRequestBody.fieldSource] = this.source
+    if(this.cvv!=null){
+      params[BaseRequestBody.fieldCvv] = this.cvv
+    }
+    if(this.initiatedBy !=null){
+      params[BaseRequestBody.fieldInitiatedBy] = this.initiatedBy
+    }
     if (this.callbackUrl != null) {
       params[BaseRequestBody.fieldReturnUrl] = this.returnUrl
     }

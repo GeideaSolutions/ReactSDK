@@ -344,9 +344,11 @@ class CheckoutScreen extends CheckoutLogic {
   render() {
     const {amount, currency} = this.myProps;
     const language = this.myProps.lang;
+    const token = this.myProps.token;
     return (
       <View onClose={this.sameAddressState} onOpen={this.sameAddressState}>
         <KeyboardAwareScrollView style={this.cardContainer()}>
+         
           <CreateCard
             language={language}
             textColor="#000000"

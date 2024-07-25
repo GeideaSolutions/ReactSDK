@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   response: {
     color: 'black',
     fontSize: 14,
-    fontFamily: 'monospace',
+    fontFamily: 'Courier',
     textAlign: 'left',
   },
   buttonContainer: {
