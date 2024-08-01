@@ -423,6 +423,10 @@ class CheckoutLogic extends Component {
         this.state.creditCardFormData.number.replace(/\s+/g, ''),
         publicKey,
         apiPassword,
+        billingAdd,
+        shippingAdd,
+        customerEmail,
+        phoneNumber,
       )
         .then(res => {
           let initiateAuthenticationResponse =
@@ -442,8 +446,13 @@ class CheckoutLogic extends Component {
             'HPP',
             callbackUrl,
             returnUrl,
+            this.state.rememberMe,
             publicKey,
             apiPassword,
+            paymentOperation,
+            customerEmail,
+            billingAdd,
+            shippingAdd,
           )
             .then(payerAuthenticationResponse => {
               let response = AuthenticationApiResponse.fromJson(
@@ -574,11 +583,41 @@ class CheckoutLogic extends Component {
     cardNumber,
     publicKey,
     apiPassword,
+    billingAddressProp,
+    shippingAddressProp,
+    customerEmailProp,
+    phoneNumberProp,
   ) {
+    let billingAddress = new Address({
+      countryCode: billingAddressProp?._countryCode,
+      street: billingAddressProp?._street,
+      city: billingAddressProp?._city,
+      postCode: billingAddressProp?._postCode,
+    });
+
+    let shippingAddress = new Address({
+      countryCode: shippingAddressProp?._countryCode,
+      street: shippingAddressProp?._street,
+      city: shippingAddressProp?._city,
+      postCode: shippingAddressProp?._postCode,
+    });
+
+    let customerEmail = customerEmailProp;
+    let phoneNumber = phoneNumberProp;
+
     
     let initiateAuthenticationRequestBody =
       new InitiateV6AuthenticationRequestBody(
-        sessionId,callbackUrl,cardNumber, returnUrl,null
+        sessionId,callbackUrl,cardNumber, returnUrl,
+        {
+          callbackUrl: callbackUrl,
+          returnUrl: returnUrl,
+          cardOnFile: this.state.rememberMe,
+          billing: billingAddress,
+          shipping: shippingAddress,
+          customerEmail: customerEmail,
+          phoneNumber: phoneNumber
+        },
       );
     return GeideaApi.initiateV6Authentication(
       initiateAuthenticationRequestBody,
@@ -599,7 +638,15 @@ class CheckoutLogic extends Component {
     
     let initiateAuthenticationRequestBody =
       new InitiateV6AuthenticationRequestBody(
-        sessionId,callbackUrl,null, returnUrl,null,deviceIdentification
+        sessionId,callbackUrl,cardNumber, returnUrl,{
+          callbackUrl: callbackUrl,
+          returnUrl: returnUrl,
+          cardOnFile: this.state.rememberMe,
+          billing: billingAddress,
+          shipping: shippingAddress,
+          customerEmail: customerEmail,
+          phoneNumber: phoneNumber,
+        deviceIdentification},
       );
     return GeideaApi.initiateV6TokenAuthentication(
       initiateAuthenticationRequestBody,
@@ -674,8 +721,13 @@ class CheckoutLogic extends Component {
       source,
       callbackUrl,
       returnUrl,
+      cardOnFile,
     publicKey,
     apiPassword,
+    paymentOperation,
+    customerEmail,
+    billingAddressProp,
+    shippingAddressProp,
   ) {
     let expireDate = this.state.creditCardFormData.expiry.replace(/\s+/g, '');
     var monthYear = expireDate.split('/');
@@ -686,6 +738,19 @@ class CheckoutLogic extends Component {
       this.state.creditCardFormData.cvc.replace(/\s+/g, ''),
       exDate,
     );
+    let billingAddress = new Address({
+      countryCode: billingAddressProp?._countryCode,
+      street: billingAddressProp?._street,
+      city: billingAddressProp?._city,
+      postCode: billingAddressProp?._postCode,
+    });
+
+    let shippingAddress = new Address({
+      countryCode: shippingAddressProp?._countryCode,
+      street: shippingAddressProp?._street,
+      city: shippingAddressProp?._city,
+      postCode: shippingAddressProp?._postCode,
+    });
     let payerAuthenticationRequestBody = new PayerV6AuthenticationRequestBody(
       sessionId,
       orderId,
@@ -696,6 +761,11 @@ class CheckoutLogic extends Component {
       {
         callbackUrl: callbackUrl,
         returnUrl: returnUrl,
+        cardOnFile: cardOnFile,
+        paymentOperation: paymentOperation,
+        customerEmail: customerEmail,
+        billing: billingAddress,
+        shipping: shippingAddress
       },
     );
     return GeideaApi.payerV6Authentication(
@@ -1045,7 +1115,7 @@ class CheckoutLogic extends Component {
   renderRememberMe() {
     const lang = this.getLanguage();
     const toggleSwitch = () =>
-      this.setState({rememberMe: !this.state.rememberMe});
+    this.setState({rememberMe: !this.state.rememberMe});
     const {rememberMe} = this.state;
     return (
       <Section>
