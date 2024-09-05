@@ -49,7 +49,7 @@ const PaymentWebViewScreen = ({ route }) => {
     <View style={{ flex: 1 }}>
       <WebView
         ref={webViewRef}
-        source={{ uri: `https://www.merchant.geidea.net/hpp/checkout/?${sessionId}` }}
+        source={{ uri: `${GeideaApi.getWebUrl()}/hpp/checkout/?${sessionId}` }}
         onNavigationStateChange={handleNavigationStateChange}
         onShouldStartLoadWithRequest={(event) => {
           if (blockNavigation && event.url.startsWith(redirectURI)) {

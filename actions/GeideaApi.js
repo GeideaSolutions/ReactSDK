@@ -8,27 +8,33 @@ import TokenApiResponse from '../response/TokenApiResponse';
 const Environment = {
   'egy_production': { 
     name: 'Egypt - Production',
-    environmentUrl: 'https://api.merchant.geidea.net'
+    environmentUrl: 'https://api.merchant.geidea.net',
+    webUrl: 'https://www.merchant.geidea.net'
   },
   'egy_preproduction': { 
     name: 'Egypt - Preproduction',
     environmentUrl: 'https://api-merchant.staging.geidea.net',
+    webUrl: 'https://www.gd-pprod-infra.net'
   },
   'uae_production': { 
     name: 'UAE - Production',
-    environmentUrl: 'https://api.merchant.geidea.ae'
+    environmentUrl: 'https://api.merchant.geidea.ae',
+    webUrl: 'https://payments.geidea.ae'
   },
   'uae_preproduction': { 
     name: 'UAE - Preproduction',
-    environmentUrl: 'https://api-merchant.staging.geidea.ae'
+    environmentUrl: 'https://api-merchant.staging.geidea.ae',
+    webUrl: 'https://www.staging.geidea.ae'
   },
   'ksa_production': { 
     name: 'KSA - Production',
-    environmentUrl: 'https://api.ksamerchant.geidea.net'
+    environmentUrl: 'https://api.ksamerchant.geidea.net',
+    webUrl: 'https://www.ksamerchant.geidea.net'
   },
   'ksa_preproduction': { 
     name: 'KSA - Preproduction',
-    environmentUrl: 'https://api-ksamerchant.staging.geidea.net' 
+    environmentUrl: 'https://api-ksamerchant.staging.geidea.net',
+    webUrl: 'https://www.gd-pprod-infra.net' 
   }
 };
 
@@ -117,6 +123,10 @@ class GeideaApi {
   static getBaseUrl = () => {
     return this.getEnumFromName(this.environment).environmentUrl;
   };
+
+  static getWebUrl = () =>{
+    return this.getEnumFromName(this.environment).webUrl;
+  }
   
   static Create_Session_URL = () =>  `${this.getBaseUrl()}/payment-intent/api/v2/direct/session`;
   static InitiateAuthentication_URL = () =>  `${this.getBaseUrl()}/pgw/api/v3/direct/authenticate/initiate`;

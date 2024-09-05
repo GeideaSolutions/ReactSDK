@@ -36,6 +36,7 @@ class PaymentComponent extends CheckoutLogic {
           shippingAddress: this.props.route.params?.shippingAddress,
           showBilling: this.props.route.params?.showBilling,
           merchantReferenceID: this.props.route.params?.merchantReferenceID,
+          selectedEnvironment: this.props.route.params?.selectedEnvironment,
           sameAddress: this.props.route.params?.sameAddress,
           showEmail: this.props.route.params?.showEmail,
           hideLogo: this.props.route.params?.hideLogo,
