@@ -21,11 +21,11 @@ export const formatAmount = (amount) => {
 }
 
 export const formatAmountNoComma = (amount) => {
-  const val = [null, undefined].includes(amount) ? 0 : amount
+  const val = amount ?? 0;
   return parseFloat(val)
     .toFixed(2)
-    .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1')
-}
+    .replace(/\d(?=(\d{3})+\.)/g, ''); // Avoiding commas
+};
 
 export const formatCurrencyAmountLabel = (props,amount) => {
   return `PAY ${formatAmount(amount)} ${props.currency}`

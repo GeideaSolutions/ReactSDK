@@ -193,6 +193,7 @@ class CheckoutLogic extends Component {
       apiPassword,
       callbackUrl,
       merchantReferenceID,
+      returnUrl
     } = this.type === 'modal' ? this.props : this.myProps;
 
     this.setState({amount: amount});
@@ -208,12 +209,13 @@ class CheckoutLogic extends Component {
       this.generateSignature(publicKey,formatAmountNoComma(amount),currency,merchantReferenceID,apiPassword,timestamp),
       publicKey,
       apiPassword,
+      returnUrl
     ).then(res => { 
       let sessionApiResponse = SessionApiResponse.fromJson(res);
       if (sessionApiResponse.responseCode !== '000') {
         return this.onPaymentFailure(sessionApiResponse);
       }
-      this.openBrowser(sessionApiResponse.session.id, publicKey, apiPassword);
+      this.openBrowser(sessionApiResponse.session.id, publicKey, apiPassword, returnUrl);
     }
     );
    }
@@ -227,8 +229,8 @@ class CheckoutLogic extends Component {
       this.onPaymentFailure(data);
   };
 
-  openBrowser = async(sessionId, publicKey, apiPassword) =>{
-    this.props.navigation.navigate('WebPayment',{sessionId, onGoBack: this.handleResult, publicKey, apiPassword});
+  openBrowser = async(sessionId, publicKey, apiPassword, returnUrl) =>{
+    this.props.navigation.navigate('WebPayment',{sessionId, onGoBack: this.handleResult, publicKey, apiPassword, returnUrl});
    }
   
 
@@ -238,6 +240,7 @@ class CheckoutLogic extends Component {
       publicKey,
       apiPassword,
       callbackUrl,
+      returnUrl,
       merchantReferenceID,
     } = this.type === 'modal' ? this.props : this.myProps;
     this.setState({
@@ -257,6 +260,7 @@ class CheckoutLogic extends Component {
         this.generateSignature(publicKey, amount, currency, merchantReferenceID, apiPassword, timestamp),
         publicKey,
         apiPassword,
+        returnUrl,
         tokenId
       );
   
@@ -285,11 +289,43 @@ class CheckoutLogic extends Component {
       apiPassword,
       callbackUrl,
       returnUrl,
+      phoneNumber,
     } = this.type === 'modal' ? this.props : this.myProps; 
     this.setState({loading: true});
     const deviceIdentification = new DeviceIdentification('bc8e1fc68c1c6188f95947cec64ce1b0',
         'en',
         'Desktops/windows/Safari-537.36/Website');
+    const customerEmail = this.state.customerEmail ?? this.myProps.customerEmail;
+    const sameAddress = this.state.sameAddress ?? this.myProps.sameAddress;
+    let billingAdd = new Address({
+      countryCode: this.state.billingAddress?._countryCode ?? this.myProps.billingAddress?._countryCode,
+      street: this.state.billingAddress?._street
+        ?? this.myProps.billingAddress?._street,
+      city: this.state.billingAddress?._city
+        ?? this.myProps.billingAddress?._city,
+      postCode: this.state.billingAddress?._postCode
+        ?? this.myProps.billingAddress?._postCode,
+    });
+    let shippingAdd;
+    if (sameAddress) {
+      shippingAdd = new Address({
+        countryCode: billingAdd.countryCode,
+        street: billingAdd.street,
+        city: billingAdd.city,
+        postCode: billingAdd.postCode,
+      });
+    } else {
+      shippingAdd = new Address({
+        countryCode: this.state.shippingAddress?._countryCode
+          ?? this.myProps.shippingAddress?._countryCode,
+        street: this.state.shippingAddress?._street
+          ?? this.myProps.shippingAddress?._street,
+        city: this.state.shippingAddress?._city
+          ?? this.myProps.shippingAddress?._city,
+        postCode: this.state.shippingAddress?._postCode
+          ?? this.myProps.shippingAddress?._postCode,
+      });
+    }
     this._initiateTokenAuthentication(
       sessionId,
       callbackUrl,
@@ -297,7 +333,11 @@ class CheckoutLogic extends Component {
       '',
       publicKey,
       apiPassword,
-      deviceIdentification
+      deviceIdentification,
+      billingAdd,
+      shippingAdd,
+      customerEmail,
+      phoneNumber
     )
       .then(res => {
         let initiateAuthenticationResponse =
@@ -411,6 +451,7 @@ class CheckoutLogic extends Component {
       this.generateSignature(publicKey,amount,currency,merchantReferenceID,apiPassword,timestamp),
       publicKey,
       apiPassword,
+      returnUrl
     ).then(res => { 
       let sessionApiResponse = SessionApiResponse.fromJson(res);
       if (sessionApiResponse.responseCode !== '000') {
@@ -502,6 +543,7 @@ class CheckoutLogic extends Component {
     signature,
     publicKey,
     apiPassword,
+    returnUrl,
     tokenId, initiatedBy){
     let createSessionRequestBody =
       new CreateSessionRequestBody(
@@ -516,7 +558,7 @@ class CheckoutLogic extends Component {
         null,
         signature,
         null,
-         'https://www.google.com', tokenId
+        returnUrl, tokenId
       );
     return GeideaApi.createSession(
       createSessionRequestBody,
@@ -633,9 +675,28 @@ class CheckoutLogic extends Component {
     cardNumber,
     publicKey,
     apiPassword,
-    deviceIdentification
+    deviceIdentification,
+    billingAddressProp,
+    shippingAddressProp,
+    customerEmailProp,
+    phoneNumberProp,
   ) {
-    
+    let billingAddress = new Address({
+      countryCode: billingAddressProp?._countryCode,
+      street: billingAddressProp?._street,
+      city: billingAddressProp?._city,
+      postCode: billingAddressProp?._postCode,
+    });
+
+    let shippingAddress = new Address({
+      countryCode: shippingAddressProp?._countryCode,
+      street: shippingAddressProp?._street,
+      city: shippingAddressProp?._city,
+      postCode: shippingAddressProp?._postCode,
+    });
+
+    let customerEmail = customerEmailProp;
+    let phoneNumber = phoneNumberProp;
     let initiateAuthenticationRequestBody =
       new InitiateV6AuthenticationRequestBody(
         sessionId,callbackUrl,cardNumber, returnUrl,{
@@ -810,14 +871,17 @@ class CheckoutLogic extends Component {
   }
   
   generateSignature(publicKey, orderAmount, orderCurrency, merchantRefId, apiPass, timestamp) {
+      console.log(`publicKey ${publicKey} orderAmount ${orderAmount} orderCurrency ${orderCurrency}`)
       const amountStr = formatAmountNoComma(orderAmount);
       const data = `${publicKey}${amountStr}${orderCurrency}${merchantRefId}${timestamp}`;
+      console.log(`data ${data}`)
       // Convert the key to WordArray
       const key = CryptoJS.enc.Utf8.parse(apiPass);
       // Compute HMAC
       const hash = CryptoJS.HmacSHA256(data, key);
       // Encode the hash as Base64
       const hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
+      console.log(`hashInBase64 ${hashInBase64}`)
       return hashInBase64;
   }
 

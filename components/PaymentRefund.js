@@ -1,11 +1,11 @@
-import React, {Component} from 'react';
+import React, { Component } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-} from 'react-native';
+} from "react-native";
 
 class PaymentRefund extends Component {
   constructor(props) {
@@ -13,15 +13,23 @@ class PaymentRefund extends Component {
   }
 
   handleOk = () => {
-    this.props.navigation.navigate('Home'); 
+    this.props.navigation.navigate("Home");
   };
 
   render() {
     const refundPayload = this.props.route.params?.refundPayload;
+    // Check if refundPayload is valid
+    if (!refundPayload) {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.response}>No response data available.</Text>
+        </View>
+      );
+    }
     const modifiedResponse = {};
     for (const key in refundPayload) {
-      if (key.startsWith('Order.')) {
-        const modifiedKey = key.replace('Order.', '');
+      if (key.startsWith("Order.")) {
+        const modifiedKey = key.replace("Order.", "");
         modifiedResponse[modifiedKey] = refundPayload[key];
       }
     }
@@ -49,46 +57,46 @@ class PaymentRefund extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
   },
   contentContainer: {
     flexGrow: 1,
     padding: 20,
   },
   header: {
-    color: 'black',
+    color: "black",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   response: {
-    color: 'black',
+    color: "black",
     fontSize: 14,
-    fontFamily: 'Courier',
-    textAlign: 'left',
+    fontFamily: "Courier",
+    textAlign: "left",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     padding: 10,
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderTopWidth: 1,
-    borderColor: '#dddddd',
-    position: 'absolute',
+    borderColor: "#dddddd",
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
   },
   button: {
-    backgroundColor: 'orange',
+    backgroundColor: "orange",
     padding: 10,
     borderRadius: 5,
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

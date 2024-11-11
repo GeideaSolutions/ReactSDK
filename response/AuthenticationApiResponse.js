@@ -1,59 +1,58 @@
-import ApiResponse from './base/ApiResponse'
+import ApiResponse from "./base/ApiResponse";
 
 export default class AuthenticationApiResponse extends ApiResponse {
-  static orderId$ = 'ApiResponse.orderId'
-  static threeDSecureId$ = 'ApiResponse.threeDSecureId'
-  static html$ = 'ApiResponse.html'
-  static htmlBodyContent$ = 'ApiResponse.htmlBodyContent'
+  static orderId$ = "ApiResponse.orderId";
+  static threeDSecureId$ = "ApiResponse.threeDSecureId";
+  static html$ = "ApiResponse.html";
+  static htmlBodyContent$ = "ApiResponse.htmlBodyContent";
 
   constructor(opts) {
-    super(opts)
-    let orderId = opts && 'orderId' in opts ? opts.orderId : null
+    super(opts);
+    let orderId = opts && "orderId" in opts ? opts.orderId : null;
     let threeDSecureId =
-      opts && 'threeDSecureId' in opts ? opts.threeDSecureId : null
-    let html = opts && 'html' in opts ? opts.html : null
-    let htmlBodyContent = opts && 'htmlBodyContent' in opts ? opts.htmlBodyContent : null
-    this.orderId = orderId
-    this.threeDSecureId = threeDSecureId
-    this.html = html
-    this.htmlBodyContent = htmlBodyContent
+      opts && "threeDSecureId" in opts ? opts.threeDSecureId : null;
+    let html = opts && "html" in opts ? opts.html : null;
+    let htmlBodyContent =
+      opts && "htmlBodyContent" in opts ? opts.htmlBodyContent : null;
+    this.orderId = orderId;
+    this.threeDSecureId = threeDSecureId;
+    this.html = html;
+    this.htmlBodyContent = htmlBodyContent;
   }
   get orderId() {
-    return this[AuthenticationApiResponse.orderId$]
+    return this[AuthenticationApiResponse.orderId$];
   }
   set orderId(value) {
-    this[AuthenticationApiResponse.orderId$] = value
+    this[AuthenticationApiResponse.orderId$] = value;
   }
   get threeDSecureId() {
-    return this[AuthenticationApiResponse.threeDSecureId$]
+    return this[AuthenticationApiResponse.threeDSecureId$];
   }
   set threeDSecureId(value) {
-    this[AuthenticationApiResponse.threeDSecureId$] = value
+    this[AuthenticationApiResponse.threeDSecureId$] = value;
   }
 
-
-  
   static fromJson(map) {
-    let response = super.fromJson(map)
-    let orderId = map && 'orderId' in map ? map.orderId : null
+    let response = super.fromJson(map);
+    let orderId = map && "orderId" in map ? map.orderId : null;
     let threeDSecureId =
-      map && 'threeDSecureId' in map ? map.threeDSecureId : null
-    let redirectHtml = map && 'redirectHtml' in map ? map.redirectHtml : null
+      map && "threeDSecureId" in map ? map.threeDSecureId : null;
+    let redirectHtml = map && "redirectHtml" in map ? map.redirectHtml : null;
     let htmlBodyContent =
-      map && 'htmlBodyContent' in map ? map.htmlBodyContent : null
+      map && "htmlBodyContent" in map ? map.htmlBodyContent : null;
 
     if (response != null) {
-      response.orderId = orderId
-      response.threeDSecureId = threeDSecureId
+      response.orderId = orderId;
+      response.threeDSecureId = threeDSecureId;
       if (redirectHtml != null) {
-        response.html = redirectHtml
-        response.htmlBodyContent = htmlBodyContent
+        response.html = redirectHtml;
+        response.htmlBodyContent = redirectHtml;
       }
       if (htmlBodyContent != null) {
-        response.html = htmlBodyContent
-        response.htmlBodyContent = htmlBodyContent
+        response.html = htmlBodyContent;
+        response.htmlBodyContent = htmlBodyContent;
       }
     }
-    return response
+    return response;
   }
 }

@@ -1,14 +1,14 @@
-import React, {Component} from 'react';
+import React, { Component } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-} from 'react-native';
-import {Alert} from 'react-native';
-import RefundRequestBody from '../request/RefundRequestBody';
-import GeideaApi from '../actions/GeideaApi';
+} from "react-native";
+import { Alert } from "react-native";
+import RefundRequestBody from "../request/RefundRequestBody";
+import GeideaApi from "../actions/GeideaApi";
 
 class PaymentDetails extends Component {
   constructor(props) {
@@ -23,29 +23,43 @@ class PaymentDetails extends Component {
     const geideaApiResponse = this.props.route.params?.geideaApiResponse;
     const publicKey = this.props.route.params?.publickeyforrefund;
     const apiPassword = this.props.route.params?.apipasswordforrefund;
-    this.setState({isLoading: true});
-    let refundRequestBody = new RefundRequestBody(geideaApiResponse.orderId);
+    this.setState({ isLoading: true });
+    if (geideaApiResponse && geideaApiResponse.orderId) {
+      let refundRequestBody = new RefundRequestBody(geideaApiResponse.orderId);
 
-    GeideaApi.refund(refundRequestBody, publicKey, apiPassword)
-      .then(res => {
-        const refundPayload = res.order;
-        this.props.navigation.navigate('PaymentRefund', {refundPayload});
-      })
-      .catch(err => {
-        Alert.alert('Refund error', err);
-      });
+      GeideaApi.refund(refundRequestBody, publicKey, apiPassword)
+        .then((res) => {
+          const refundPayload = res.order;
+          this.props.navigation.navigate("PaymentRefund", { refundPayload });
+        })
+        .catch((err) => {
+          Alert.alert("Refund error", err);
+        });
+    } else {
+      this.setState({ isLoading: false });
+      Alert.alert("geideaApiResponse is null or does not have orderId.");
+    }
   }
 
   handleOk = () => {
-    this.props.navigation.navigate('Home');
+    this.props.navigation.navigate("Home");
   };
 
   render() {
     const geideaApiResponse = this.props.route.params?.geideaApiResponse;
+
+    // Check if geideaApiResponse is valid
+    if (!geideaApiResponse) {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.response}>No response data available.</Text>
+        </View>
+      );
+    }
     const modifiedResponse = {};
     for (const key in geideaApiResponse) {
-      if (key.startsWith('Order.')) {
-        const modifiedKey = key.replace('Order.', '');
+      if (key.startsWith("Order.")) {
+        const modifiedKey = key.replace("Order.", "");
         modifiedResponse[modifiedKey] = geideaApiResponse[key];
       }
     }
@@ -63,7 +77,8 @@ class PaymentDetails extends Component {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.button}
-            onPress={this.onRefundButtonPress}>
+            onPress={this.onRefundButtonPress}
+          >
             <Text style={styles.buttonText}>Refund Order</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={this.handleOk}>
@@ -78,46 +93,46 @@ class PaymentDetails extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
   },
   contentContainer: {
     flexGrow: 1,
     padding: 20,
   },
   header: {
-    color: 'black',
+    color: "black",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   response: {
-    color: 'black',
+    color: "black",
     fontSize: 14,
-    fontFamily: 'Courier',
-    textAlign: 'left',
+    fontFamily: "Courier",
+    textAlign: "left",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     padding: 10,
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderTopWidth: 1,
-    borderColor: '#dddddd',
-    position: 'absolute',
+    borderColor: "#dddddd",
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
   },
   button: {
-    backgroundColor: 'orange',
+    backgroundColor: "orange",
     padding: 10,
     borderRadius: 5,
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 

@@ -13,7 +13,7 @@ const Environment = {
   },
   'egy_preproduction': { 
     name: 'Egypt - Preproduction',
-    environmentUrl: 'https://api-merchant.staging.geidea.net',
+    environmentUrl: 'https://api.gd-pprod-infra.net',
     webUrl: 'https://www.gd-pprod-infra.net'
   },
   'uae_production': { 
@@ -23,7 +23,7 @@ const Environment = {
   },
   'uae_preproduction': { 
     name: 'UAE - Preproduction',
-    environmentUrl: 'https://api-merchant.staging.geidea.ae',
+    environmentUrl: 'https://api.staging.geidea.ae',
     webUrl: 'https://www.staging.geidea.ae'
   },
   'ksa_production': { 
@@ -33,7 +33,7 @@ const Environment = {
   },
   'ksa_preproduction': { 
     name: 'KSA - Preproduction',
-    environmentUrl: 'https://api-ksamerchant.staging.geidea.net',
+    environmentUrl: 'https://api.gd-pprod-infra.net',
     webUrl: 'https://www.gd-pprod-infra.net' 
   }
 };
