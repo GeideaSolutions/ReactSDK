@@ -9,13 +9,14 @@ const PaymentWebViewScreen = ({ route }) => {
   const { sessionId , onGoBack, publicKey, apiPassword, returnUrl } = route.params;
   const webViewRef = useRef(null);
   // const redirectURI = 'https://www.google.com'; // Your registered redirect URI
+  const redirectURI = returnUrl;
   const [blockNavigation, setBlockNavigation] = useState(false);
 
 
   const handleNavigationStateChange = (navState) => {
     const newUrl = navState.url;
 
-    if (newUrl.startsWith(returnUrl)) {
+    if (newUrl.startsWith(redirectURI)) {
       // Handle successful redirect
       const transactionData = parseRedirectURL(newUrl); // Parse data from redirect URL
       GeideaApi.getPaymentInfo(transactionData.orderId, publicKey, apiPassword).then(res => {

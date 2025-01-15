@@ -192,8 +192,8 @@ class CheckoutLogic extends Component {
       publicKey,
       apiPassword,
       callbackUrl,
+      returnUrl,
       merchantReferenceID,
-      returnUrl
     } = this.type === 'modal' ? this.props : this.myProps;
 
     this.setState({amount: amount});
@@ -209,13 +209,14 @@ class CheckoutLogic extends Component {
       this.generateSignature(publicKey,formatAmountNoComma(amount),currency,merchantReferenceID,apiPassword,timestamp),
       publicKey,
       apiPassword,
+      null,
       returnUrl
     ).then(res => { 
       let sessionApiResponse = SessionApiResponse.fromJson(res);
       if (sessionApiResponse.responseCode !== '000') {
         return this.onPaymentFailure(sessionApiResponse);
       }
-      this.openBrowser(sessionApiResponse.session.id, publicKey, apiPassword, returnUrl);
+      this.openBrowser(sessionApiResponse.session.id, publicKey, apiPassword);
     }
     );
    }
@@ -229,8 +230,8 @@ class CheckoutLogic extends Component {
       this.onPaymentFailure(data);
   };
 
-  openBrowser = async(sessionId, publicKey, apiPassword, returnUrl) =>{
-    this.props.navigation.navigate('WebPayment',{sessionId, onGoBack: this.handleResult, publicKey, apiPassword, returnUrl});
+  openBrowser = async(sessionId, publicKey, apiPassword) =>{
+    this.props.navigation.navigate('WebPayment',{sessionId, onGoBack: this.handleResult, publicKey, apiPassword});
    }
   
 
@@ -260,8 +261,8 @@ class CheckoutLogic extends Component {
         this.generateSignature(publicKey, amount, currency, merchantReferenceID, apiPassword, timestamp),
         publicKey,
         apiPassword,
-        returnUrl,
-        tokenId
+        tokenId,
+        returnUrl
       );
   
       let sessionApiResponse = SessionApiResponse.fromJson(sessionResponse);
@@ -451,6 +452,7 @@ class CheckoutLogic extends Component {
       this.generateSignature(publicKey,amount,currency,merchantReferenceID,apiPassword,timestamp),
       publicKey,
       apiPassword,
+      null,
       returnUrl
     ).then(res => { 
       let sessionApiResponse = SessionApiResponse.fromJson(res);
@@ -543,8 +545,7 @@ class CheckoutLogic extends Component {
     signature,
     publicKey,
     apiPassword,
-    returnUrl,
-    tokenId, initiatedBy){
+    tokenId, returnUrl, initiatedBy){
     let createSessionRequestBody =
       new CreateSessionRequestBody(
         amount,
@@ -558,7 +559,8 @@ class CheckoutLogic extends Component {
         null,
         signature,
         null,
-        returnUrl, tokenId
+        returnUrl, 
+        tokenId
       );
     return GeideaApi.createSession(
       createSessionRequestBody,
@@ -871,17 +873,14 @@ class CheckoutLogic extends Component {
   }
   
   generateSignature(publicKey, orderAmount, orderCurrency, merchantRefId, apiPass, timestamp) {
-      console.log(`publicKey ${publicKey} orderAmount ${orderAmount} orderCurrency ${orderCurrency}`)
       const amountStr = formatAmountNoComma(orderAmount);
       const data = `${publicKey}${amountStr}${orderCurrency}${merchantRefId}${timestamp}`;
-      console.log(`data ${data}`)
       // Convert the key to WordArray
       const key = CryptoJS.enc.Utf8.parse(apiPass);
       // Compute HMAC
       const hash = CryptoJS.HmacSHA256(data, key);
       // Encode the hash as Base64
       const hashInBase64 = CryptoJS.enc.Base64.stringify(hash);
-      console.log(`hashInBase64 ${hashInBase64}`)
       return hashInBase64;
   }
 
